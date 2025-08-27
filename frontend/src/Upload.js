@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
 import { useAuth } from './App';
+import { useNavigate } from 'react-router-dom';
 
 function Upload() {
   const [file, setFile] = useState(null);
   const [caption, setCaption] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const { authToken } = useAuth();
+  const { authToken, handleLogout } = useAuth();
+  const navigate = useNavigate();
 
   const API_BASE_URL = 'http://localhost:8000';
 
@@ -35,6 +37,11 @@ function Upload() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          handleLogout();
+          navigate('/login');
+          console.error("Authentication failed. Please log in again.");
+        }
         const errorData = await response.json();
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }

@@ -10,6 +10,7 @@ import SimplifiedRegister from './SimplifiedRegister'; // New import for simplif
 
 import Gallery from './Gallery';
 import Upload from './Upload';
+import Voting from './Voting'; // New import
 
 import CreateProfile from './CreateProfile';
 import Admin from './Admin';
@@ -69,6 +70,61 @@ function ProfileDropdown() {
 function App() {
   const [authToken, setAuthToken] = useState(localStorage.getItem('authToken')); // Get token from localStorage
   const [isAdmin, setIsAdmin] = useState(false);
+  const [backgroundImages, setBackgroundImages] = useState([]);
+  const [currentBackground, setCurrentBackground] = useState(() => {
+    // Initialize currentBackground from localStorage to prevent white flash
+    const savedBackground = localStorage.getItem('lastBackgroundUrl');
+    if (savedBackground) {
+      document.body.style.backgroundImage = `url(${savedBackground})`;
+      document.body.style.backgroundSize = 'cover';
+      document.body.style.backgroundPosition = 'center';
+      document.body.style.backgroundRepeat = 'no-repeat';
+      document.body.style.backgroundAttachment = 'fixed';
+    }
+    return savedBackground || '';
+  });
+
+  const API_BASE_URL = 'http://localhost:8000'; // FastAPI backend URL
+
+  // Fetch background images on component mount
+  useEffect(() => {
+    const fetchBackgrounds = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/backgrounds`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setBackgroundImages(data);
+
+        // Select and set a new random background if not logged in
+        if (!authToken && data.length > 0) {
+          const randomIndex = Math.floor(Math.random() * data.length);
+          const newSelectedBackground = `${API_BASE_URL}/static/BackgroundLogin/${data[randomIndex]}`;
+          setCurrentBackground(newSelectedBackground);
+          localStorage.setItem('lastBackgroundUrl', newSelectedBackground);
+          document.body.style.backgroundImage = `url(${newSelectedBackground})`;
+          document.body.style.backgroundSize = 'cover';
+          document.body.style.backgroundPosition = 'center';
+          document.body.style.backgroundRepeat = 'no-repeat';
+          document.body.style.backgroundAttachment = 'fixed';
+        }
+
+      } catch (err) {
+        console.error('Error fetching backgrounds:', err);
+      }
+    };
+
+    fetchBackgrounds();
+  }, [authToken]); // Depend on authToken to re-fetch if user logs out/in
+
+  // Clear background when logged in
+  useEffect(() => {
+    if (authToken) {
+      document.body.style.backgroundImage = 'none';
+      localStorage.removeItem('lastBackgroundUrl'); // Clear saved background on login
+    }
+  }, [authToken]);
 
   useEffect(() => {
     if (authToken) {
@@ -98,6 +154,7 @@ function App() {
                 <>
                   <Link to="/">Home</Link>
                   <Link to="/gallery" style={{ marginLeft: '10px' }}>Gallery</Link>
+                  <Link to="/voting" style={{ marginLeft: '10px' }}>Vote</Link>
                   {isAdmin && <Link to="/admin" style={{ marginLeft: '10px' }}>Admin</Link>}
                   <ProfileDropdown />
                 </>
@@ -118,6 +175,7 @@ function App() {
               <Route path="/request-password-reset" element={<RequestPasswordReset />} /> {/* New route */}
               <Route path="/reset-password" element={<ResetPassword />} /> {/* New route */}
               <Route path="/gallery" element={<PrivateRoute><Gallery /></PrivateRoute>} />
+              <Route path="/voting" element={<PrivateRoute><Voting /></PrivateRoute>} />
               <Route path="/admin" element={<AdminRoute><Admin /><Upload /></AdminRoute>} />
               <Route
                 path="/"
@@ -129,6 +187,9 @@ function App() {
               />
             </Routes>
           </main>
+          <footer className="App-footer">
+            <p>Copyright © 2025-2026 VeloAI. All rights reserved.</p>
+          </footer>
         </div>
       </Router>
     </AuthContext.Provider>

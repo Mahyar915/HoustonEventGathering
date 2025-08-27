@@ -1,12 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from './App';
+import { jwtDecode } from 'jwt-decode';
 
 function ManageUsers() {
   const [users, setUsers] = useState([]);
   const { authToken } = useAuth();
+  const [currentUserId, setCurrentUserId] = useState(null);
 
   const API_BASE_URL = 'http://localhost:8000';
+
+  useEffect(() => {
+    if (authToken) {
+      try {
+        const decodedToken = jwtDecode(authToken);
+        setCurrentUserId(decodedToken.user_id);
+      } catch (error) {
+        console.error("Error decoding token:", error);
+      }
+    }
+  }, [authToken]);
 
   const fetchUsers = async () => {
     try {
@@ -33,13 +46,11 @@ function ManageUsers() {
 
   const handleUpdateUser = async (id, isAdmin) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/users/${id}/set-admin?is_admin=${isAdmin}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`,
         },
-        body: JSON.stringify({ is_admin: isAdmin }),
       });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -52,7 +63,7 @@ function ManageUsers() {
 
   const handleDeleteUser = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/users/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -90,7 +101,11 @@ function ManageUsers() {
                 <input
                   type="checkbox"
                   checked={user.is_admin}
-                  onChange={(e) => handleUpdateUser(user.id, e.target.checked)}
+                  onChange={(e) => {
+                    console.log("Checkbox changed for user:", user.id, "New value:", e.target.checked);
+                    handleUpdateUser(user.id, e.target.checked);
+                  }}
+                  disabled={user.id === currentUserId} // Disable if it's the current user
                 />
               </td>
               <td>

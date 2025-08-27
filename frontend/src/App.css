@@ -48,7 +48,7 @@ main {
   width: 90%;
   max-width: 1600px;
   margin: 0 auto;
-  background-color: #fff;
+  /* background-color: #fff; */ /* Removed to allow body background to show */
   padding: 30px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -163,7 +163,7 @@ tr:nth-child(even) {
   max-width: 400px;
   margin: 50px auto;
   padding: 30px;
-  background-color: #fff;
+  background-color: rgba(255, 255, 255, 0.85); /* Semi-transparent white */
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   text-align: center;
@@ -389,3 +389,113 @@ tr:nth-child(even) {
   margin-top: 10px;
   font-weight: bold;
 }
+
+/* Voting Page Styling */
+.voting-container h2 {
+  color: #333;
+  margin-bottom: 30px;
+}
+
+.voting-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.month-card {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.month-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.month-card h3 {
+  color: #007bff;
+  margin-top: 0;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+.friday-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.friday-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.friday-item:last-child {
+  border-bottom: none;
+}
+
+.friday-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.friday-date {
+  font-weight: bold;
+  color: #555;
+}
+
+.friday-votes {
+  font-size: 14px;
+  color: #777;
+}
+
+.vote-btn {
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.vote-btn.plus {
+  background-color: #28a745;
+  color: white;
+}
+
+.vote-btn.plus:hover {
+  background-color: #218838;
+  transform: scale(1.1);
+}
+
+.vote-btn.minus {
+  background-color: #dc3545;
+  color: white;
+}
+
+.vote-btn.minus:hover {
+  background-color: #c82333;
+  transform: scale(1.1);
+}
+
+.App-footer {
+  margin-top: 40px;
+  padding: 20px;
+  background-color: #282c34;
+  color: white;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+

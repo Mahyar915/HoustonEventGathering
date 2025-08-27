@@ -135,7 +135,7 @@ class RegistrationInfo(RegistrationData):
     class Config:
         orm_mode = True
 
-from fastapi import FastAPI, Depends, HTTPException, status, Body, File, UploadFile
+from fastapi import FastAPI, Depends, HTTPException, status, Body, File, UploadFile, Response
 import shutil
 from sqlalchemy.orm import joinedload
 
@@ -152,13 +152,22 @@ class ReactionInfo(BaseModel):
     class Config:
         orm_mode = True
 
+class LikeInfo(BaseModel):
+    id: int
+    user_id: int
+    image_id: int
+
+    class Config:
+        orm_mode = True
+
 class ImageInfo(BaseModel):
     id: int
     filename: str
     caption: str
     user_id: int
-    likes: int
     reactions: List[ReactionInfo] = [] # Include reactions
+    likes: List[LikeInfo] = [] # Include likes
+    has_liked: bool = False # New field to indicate if current user has liked
 
     class Config:
         orm_mode = True
@@ -176,8 +185,11 @@ async def upload_image(file: UploadFile = File(...), caption: str = Body(...), d
     return new_image
 
 @app.get("/images/", response_model=List[ImageInfo])
-async def get_images(db: Session = Depends(database.get_db)):
-    images = db.query(models.Image).options(joinedload(models.Image.reactions)).all()
+async def get_images(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
+    images = db.query(models.Image).options(joinedload(models.Image.reactions), joinedload(models.Image.likes)).all()
+    # For each image, add a 'has_liked' field indicating if the current user has liked it
+    for image in images:
+        image.has_liked = any(like.user_id == current_user.id for like in image.likes)
     return images
 
 @app.delete("/images/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -209,35 +221,130 @@ async def get_users(db: Session = Depends(database.get_db), current_user: models
     users = db.query(models.User).all()
     return users
 
-@app.post("/images/{image_id}/like", response_model=ImageInfo)
+@app.put("/users/{user_id}/set-admin", response_model=UserPublic)
+async def set_user_admin_status(user_id: int, is_admin: bool, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_utils.admin_required)):
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user.is_admin = is_admin
+    db.commit()
+    db.refresh(user)
+    return user
+
+class VoteAdminInfo(BaseModel):
+    id: int
+    event_date: str
+    month: str
+    owner: UserPublic
+
+    class Config:
+        orm_mode = True
+
+@app.get("/admin/votes", response_model=List[VoteAdminInfo])
+async def get_all_votes(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_utils.admin_required)):
+    votes = db.query(models.Vote).options(joinedload(models.Vote.owner)).all()
+    return votes
+
+@app.get("/backgrounds", response_model=List[str])
+async def get_background_images():
+    background_dir = os.path.join(UPLOADS_DIR, "BackgroundLogin")
+    if not os.path.exists(background_dir):
+        raise HTTPException(status_code=404, detail="Backgrounds directory not found")
+    
+    images = [f for f in os.listdir(background_dir) if os.path.isfile(os.path.join(background_dir, f))]
+    return images
+
+class VoteCreate(BaseModel):
+    event_date: str
+    month: str
+
+class VoteInfo(VoteCreate):
+    id: int
+    user_id: int
+
+    class Config:
+        orm_mode = True
+
+@app.get("/votes/{month}", response_model=List[VoteInfo])
+async def get_votes(month: str, db: Session = Depends(database.get_db)):
+    votes = db.query(models.Vote).filter(models.Vote.month == month).all()
+    return votes
+
+@app.get("/votes/my-votes", response_model=List[VoteInfo])
+async def get_my_votes(db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
+    votes = db.query(models.Vote).filter(models.Vote.user_id == current_user.id).all()
+    return votes
+
+@app.post("/votes")
+async def cast_vote(vote: VoteCreate, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
+    # Check if the user has already voted for this exact date
+    existing_vote = db.query(models.Vote).filter(
+        models.Vote.user_id == current_user.id,
+        models.Vote.event_date == vote.event_date
+    ).first()
+
+    if existing_vote:
+        # User has already voted for this date, so we delete the vote (un-vote)
+        db.delete(existing_vote)
+        db.commit()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    else:
+        # Create a new vote
+        new_vote = models.Vote(**vote.dict(), owner=current_user)
+        db.add(new_vote)
+        db.commit()
+        db.refresh(new_vote)
+        return new_vote
+
+@app.post("/images/{image_id}/like", status_code=status.HTTP_204_NO_CONTENT)
 async def like_image(image_id: int, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
     db_image = db.query(models.Image).filter(models.Image.id == image_id).first()
     if db_image is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    db_image.likes += 1
+    existing_like = db.query(models.Like).filter(
+        models.Like.user_id == current_user.id,
+        models.Like.image_id == image_id
+    ).first()
+
+    if existing_like:
+        db.delete(existing_like)
+    else:
+        new_like = models.Like(user_id=current_user.id, image_id=image_id)
+        db.add(new_like)
+
     db.commit()
-    db.refresh(db_image)
-    return db_image
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 class ReactionBody(BaseModel):
     emoji: str
 
-@app.post("/images/{image_id}/react", response_model=ImageInfo)
+@app.post("/images/{image_id}/react", status_code=status.HTTP_204_NO_CONTENT)
 async def react_to_image(image_id: int, reaction: ReactionBody, db: Session = Depends(database.get_db), current_user: models.User = Depends(auth_utils.get_current_user)):
     db_image = db.query(models.Image).filter(models.Image.id == image_id).first()
     if db_image is None:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    new_reaction = models.Reaction(
-        emoji=reaction.emoji,
-        user_id=current_user.id,
-        image_id=image_id
-    )
-    db.add(new_reaction)
+    # Check if user has already reacted with this emoji to this image
+    existing_reaction = db.query(models.Reaction).filter(
+        models.Reaction.user_id == current_user.id,
+        models.Reaction.image_id == image_id,
+        models.Reaction.emoji == reaction.emoji
+    ).first()
+
+    if existing_reaction:
+        db.delete(existing_reaction)
+    else:
+        new_reaction = models.Reaction(
+            emoji=reaction.emoji,
+            user_id=current_user.id,
+            image_id=image_id
+        )
+        db.add(new_reaction)
+
     db.commit()
-    db.refresh(db_image)
-    return db_image
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.get("/registrations/", response_model=List[RegistrationInfo])
 async def get_registrations(db: Session = Depends(database.get_db)):

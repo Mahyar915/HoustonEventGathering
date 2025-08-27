@@ -103,7 +103,7 @@ function Gallery() {
             <div className="image-info">
               <div className="image-caption">{image.caption}</div>
               <div className="image-actions">
-                <button onClick={() => handleLike(image.id)}>❤️ {image.likes}</button>
+                <button onClick={() => handleLike(image.id)}>{image.has_liked ? '❤️' : '🤍'} {image.likes.length}</button>
                 <div className="reactions">
                   {Object.entries(
                     image.reactions.reduce((acc, reaction) => {
