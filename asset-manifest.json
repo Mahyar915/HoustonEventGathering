@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/HoustonEventGathering/static/css/main.86c57db9.css",
-    "main.js": "/HoustonEventGathering/static/js/main.eb94fb14.js",
+    "main.js": "/HoustonEventGathering/static/js/main.c82c2848.js",
     "static/js/453.670e15c7.chunk.js": "/HoustonEventGathering/static/js/453.670e15c7.chunk.js",
     "index.html": "/HoustonEventGathering/index.html",
     "main.86c57db9.css.map": "/HoustonEventGathering/static/css/main.86c57db9.css.map",
-    "main.eb94fb14.js.map": "/HoustonEventGathering/static/js/main.eb94fb14.js.map",
+    "main.c82c2848.js.map": "/HoustonEventGathering/static/js/main.c82c2848.js.map",
     "453.670e15c7.chunk.js.map": "/HoustonEventGathering/static/js/453.670e15c7.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.86c57db9.css",
-    "static/js/main.eb94fb14.js"
+    "static/js/main.c82c2848.js"
   ]
 }
