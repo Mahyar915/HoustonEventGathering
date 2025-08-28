@@ -15,7 +15,7 @@ function RequestPasswordReset() {
     setError('');
 
     try {
-      const response = await fetch(`${API_BASE_URL}/request_password_reset/`, {
+      const response = await fetch(`${API_BASE_URL}/request-password-reset/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -39,19 +39,20 @@ function RequestPasswordReset() {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Request Password Reset</h2>
-      <form onSubmit={handleSubmit}>
-        {message && <p className="success-message">{message}</p>}
-        {error && <p className="error-message">{error}</p>}
-        <div>
-          <label htmlFor="email">Enter your registered email:</label>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <h2>REQUEST PASSWORD RESET</h2>
+      {message && <p style={{ color: 'green', fontSize: '1.1em', fontWeight: 'bold' }}>If your email is in our system, you will receive a password reset link shortly.</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <label htmlFor="email" style={{ display: 'block', marginBottom: '0.5rem' }}>Enter your registered email:</label>
           <input
             type="email"
             id="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            style={{ width: '100%', padding: '0.5rem' }}
           />
         </div>
         <button type="submit">Send Reset Link</button>

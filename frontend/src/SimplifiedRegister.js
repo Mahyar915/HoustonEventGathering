@@ -10,6 +10,7 @@ function SimplifiedRegister() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [otpRequested, setOtpRequested] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // New state for loading
   const navigate = useNavigate();
   const { setAuthToken } = useAuth();
 
@@ -19,6 +20,7 @@ function SimplifiedRegister() {
     e.preventDefault();
     setMessage('');
     setError('');
+    setIsLoading(true); // Set loading to true
 
     try {
       const response = await fetch(`${API_BASE_URL}/register_simplified/`, {
@@ -40,6 +42,8 @@ function SimplifiedRegister() {
     } catch (err) {
       console.error('Request OTP error:', err);
       setError(err.message || 'Failed to request OTP.');
+    } finally {
+      setIsLoading(false); // Set loading to false
     }
   };
 
@@ -98,7 +102,9 @@ function SimplifiedRegister() {
               required
             />
           </div>
-          <button type="submit">Request OTP</button>
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Sending OTP... Please wait' : 'Request OTP'}
+          </button>
         </form>
       ) : (
         <form onSubmit={handleRegister}>
@@ -141,7 +147,7 @@ function SimplifiedRegister() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
-            <p className="password-hint">Password must be at least 8 characters long and contain at least one special character.</p>
+                        <p className="password-hint">Password must be at least 8 characters long and contain at least one special character: {'!@#$%^&*()_+=?<>'}.</p>
           </div>
           <button type="submit">Register</button>
         </form>

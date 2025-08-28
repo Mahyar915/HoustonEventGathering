@@ -16,7 +16,6 @@ dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path=dotenv_path)
 
 
-
 from . import auth_utils, models, database, email_utils
 from .database import engine
 
@@ -248,7 +247,7 @@ async def get_all_votes(db: Session = Depends(database.get_db), current_user: mo
 
 @app.get("/backgrounds", response_model=List[str])
 async def get_background_images():
-    background_dir = os.path.join(UPLOADS_DIR, "BackgroundLogin")
+    background_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads", "BackgroundLogin")
     if not os.path.exists(background_dir):
         raise HTTPException(status_code=404, detail="Backgrounds directory not found")
     
@@ -347,6 +346,51 @@ async def react_to_image(image_id: int, reaction: ReactionBody, db: Session = De
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 @app.get("/registrations/", response_model=List[RegistrationInfo])
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: constr(min_length=8)
+
+@app.post("/request-password-reset/", status_code=status.HTTP_200_OK)
+async def request_password_reset(body: PasswordResetRequest, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.email == body.email).first()
+    if not user:
+        # Even if the user is not found, we send a generic success message
+        # to avoid revealing which emails are registered in the system.
+        return {"message": "If an account with this email exists, a password reset link has been sent."}
+
+    # Generate a unique, secure token
+    reset_token = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
+    user.reset_token = reset_token
+    user.reset_token_expires_at = datetime.utcnow() + timedelta(hours=1)
+    db.commit()
+
+    try:
+        email_utils.send_password_reset_email(user.email, user.username, reset_token)
+        return {"message": "If an account with this email exists, a password reset link has been sent."}
+    except Exception as e:
+        # Log the error, but still send a generic message to the user
+        print(f"Failed to send password reset email: {e}")
+        # Potentially re-raise or handle more gracefully depending on production needs
+        raise HTTPException(status_code=500, detail="Failed to send password reset email.")
+
+
+@app.post("/reset-password/", status_code=status.HTTP_200_OK)
+async def reset_password(body: PasswordReset, db: Session = Depends(database.get_db)):
+    user = db.query(models.User).filter(models.User.reset_token == body.token).first()
+
+    if not user or user.reset_token_expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invalid or expired password reset token.")
+
+    user.hashed_password = auth_utils.get_password_hash(body.new_password)
+    user.reset_token = None
+    user.reset_token_expires_at = None
+    db.commit()
+
+    return {"message": "Your password has been successfully reset."}
+
 async def get_registrations(db: Session = Depends(database.get_db)):
     registrations = db.query(models.Registration).all()
     return registrations
@@ -386,4 +430,3 @@ async def delete_registration(registration_id: int, db: Session = Depends(databa
     db.delete(db_registration)
     db.commit()
     return {"ok": True}
-

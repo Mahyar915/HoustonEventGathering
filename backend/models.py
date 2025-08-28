@@ -8,7 +8,6 @@ class TokenData(BaseModel):
 
 class Registration(Base):
     __tablename__ = "registrations"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     guests = Column(Integer, default=0)
@@ -18,7 +17,6 @@ class Registration(Base):
 
 class User(Base):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=True) # Username can be null initially
     email = Column(String, unique=True, index=True) # New: Email field
@@ -38,7 +36,6 @@ class User(Base):
 
 class Image(Base):
     __tablename__ = "images"
-
     id = Column(Integer, primary_key=True, index=True)
     filename = Column(String, index=True)
     caption = Column(String)
@@ -50,7 +47,6 @@ class Image(Base):
 
 class Reaction(Base):
     __tablename__ = "reactions"
-
     id = Column(Integer, primary_key=True, index=True)
     emoji = Column(String)
     user_id = Column(Integer, ForeignKey("users.id"))
@@ -61,7 +57,6 @@ class Reaction(Base):
 
 class Like(Base):
     __tablename__ = "likes"
-
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     image_id = Column(Integer, ForeignKey("images.id"))
@@ -71,7 +66,6 @@ class Like(Base):
 
 class Vote(Base):
     __tablename__ = 'votes'
-
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     event_date = Column(String, nullable=False)

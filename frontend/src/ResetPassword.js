@@ -1,50 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 function ResetPassword() {
-  const [newPassword, setNewPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const API_BASE_URL = 'http://127.0.0.1:8000';
+  const API_BASE_URL = 'http://localhost:8000';
 
-  // Get token from URL query parameters
-  const queryParams = new URLSearchParams(location.search);
-  const token = queryParams.get('token');
-
-  useEffect(() => {
-    if (!token) {
-      setError('No reset token found in the URL.');
-    }
-  }, [token]);
+  const getTokenFromUrl = () => {
+    const searchParams = new URLSearchParams(location.search);
+    return searchParams.get('token');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setError('');
 
-    if (newPassword !== confirmPassword) {
-      setError('New password and confirm password do not match.');
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
       return;
     }
 
+    const token = getTokenFromUrl();
     if (!token) {
-      setError('Missing reset token.');
+      setError('Invalid or missing password reset token.');
       return;
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/reset_password/`, {
+      const response = await fetch(`${API_BASE_URL}/reset-password/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token, new_password: newPassword }),
+        body: JSON.stringify({ token, new_password: password }),
       });
 
       const data = await response.json();
@@ -54,11 +48,9 @@ function ResetPassword() {
       }
 
       setMessage(data.message);
-      // Redirect to login page after successful password reset
       setTimeout(() => {
         navigate('/login');
-      }, 3000); // Redirect after 3 seconds
-
+      }, 3000); // Redirect to login after 3 seconds
     } catch (err) {
       console.error('Reset password error:', err);
       setError(err.message || 'Failed to reset password. Please try again.');
@@ -66,62 +58,31 @@ function ResetPassword() {
   };
 
   return (
-    <div className="auth-container">
-      <h2>Reset Password</h2>
+    <div>
+      <h2>RESET YOUR PASSWORD</h2>
+      {message && <p style={{ color: 'green' }}>{message}</p>}
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleSubmit}>
-        {message && <p className="success-message">{message}</p>}
-        {error && <p className="error-message">{error}</p>}
-
         <div>
-          <label htmlFor="new-password">New Password:</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showNewPassword ? 'text' : 'password'}
-              id="new-password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-            />
-            <span
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                cursor: 'pointer',
-              }}
-              onClick={() => setShowNewPassword(!showNewPassword)}
-            >
-              {showNewPassword ? '🙈' : '👁️'}
-            </span>
-          </div>
+          <label htmlFor="password">New Password:</label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
         </div>
-
         <div>
-          <label htmlFor="confirm-password">Confirm New Password:</label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showConfirmPassword ? 'text' : 'password'}
-              id="confirm-password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
-            <span
-              style={{
-                position: 'absolute',
-                right: '10px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                cursor: 'pointer',
-              }}
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              {showConfirmPassword ? '🙈' : '👁️'}
-            </span>
-          </div>
+          <label htmlFor="confirmPassword">Confirm New Password:</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
         </div>
-
         <button type="submit">Reset Password</button>
       </form>
     </div>
